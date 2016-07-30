@@ -1,9 +1,7 @@
 
-/// A numerical ID to refer to an object, type, function, label, ...
-pub struct Id(u32);
-
 // SPIR-V tool IDs
 // Following: https://github.com/KhronosGroup/SPIRV-Headers/blob/master/include/spirv/spir-v.xml
+#[derive(Debug)]
 pub enum GeneratorId {
 	Khronos = 0,
 	LunarG = 1,
