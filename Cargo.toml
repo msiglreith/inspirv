@@ -1,0 +1,11 @@
+[package]
+name = "inspirv"
+version = "0.1.0"
+authors = ["msiglreith <msiglreith@users.noreply.github.com>"]
+build = "build/main.rs"
+
+[dependencies]
+bitflags = "0.7.0"
+
+[build-dependencies]
+json = "0.10.0"
