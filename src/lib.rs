@@ -8,3 +8,4 @@ extern crate bitflags;
 pub mod module;
 pub mod core;
 pub mod types;
+pub mod instruction;
