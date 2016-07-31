@@ -6,6 +6,7 @@ build = "build/main.rs"
 
 [dependencies]
 bitflags = "0.7.0"
+byteorder = "0.5.3"
 
 [build-dependencies]
 json = "0.10.0"

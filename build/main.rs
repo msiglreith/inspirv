@@ -36,12 +36,12 @@ fn build_core_mod<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result<
     try!(writeln!(dest, "pub mod enumeration;"));
     try!(writeln!(dest, ""));
 
-    try!(writeln!(dest, "pub const SPIRV_MAGIC: usize = {};", grammar["magic_number"]));
-    try!(writeln!(dest, "pub const SPIRV_VERSION: (usize, usize) = ({major}, {minor});",
+    try!(writeln!(dest, "pub const SPIRV_MAGIC: u32 = {};", grammar["magic_number"]));
+    try!(writeln!(dest, "pub const SPIRV_VERSION: (u32, u32) = ({major}, {minor});",
         major=grammar["major_version"],
         minor=grammar["minor_version"]
     ));
-    try!(writeln!(dest, "pub const SPIRV_REVISION: usize = {};", grammar["revision"]));
+    try!(writeln!(dest, "pub const SPIRV_REVISION: u32 = {};", grammar["revision"]));
 
     Ok(())
 }
