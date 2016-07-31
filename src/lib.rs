@@ -22,6 +22,7 @@ use std::io;
 pub enum ReadError {
     Io(io::Error),
     InvalidSpirvMagic(u32),
+    OutOfOperands, // TODO: some better error message, containing actual information
 }
 
 impl From<io::Error> for ReadError {

@@ -15,8 +15,35 @@ enum Endian {
 }
 
 pub struct RawInstruction {
-    opcode: u32,
-    operands: Vec<u32>,
+    pub opcode: u32,
+    pub operands: Vec<u32>,
+}
+
+pub struct RawInstructionView<'a> {
+    data: &'a RawInstruction,
+    operand_offset: usize,
+}
+
+impl<'a> RawInstructionView<'a> {
+    pub fn new(instruction: &'a RawInstruction) -> Self {
+        RawInstructionView {
+            data: instruction,
+            operand_offset: 0,
+        }
+    }
+
+    pub fn peek(&mut self) -> Option<u32> {
+        if self.operand_offset >= self.data.operands.len() {
+            None
+        } else {
+            let word = self.data.operands[self.operand_offset];
+            Some(word)
+        }
+    }
+
+    pub fn advance(&mut self) {
+        self.operand_offset += 1;
+    }
 }
 
 pub struct ReaderBinary<R: Read> {
@@ -83,7 +110,7 @@ impl<R: Read> ReaderBinary<R> {
 
     fn read_u32(&mut self) -> Result<u32, ReadError> {
         let mut buf: [u8; 4] = [0; 4];
-        let len = try!(self.inner.read_exact(&mut buf));
+        try!(self.inner.read_exact(&mut buf));
         let mut rdr = Cursor::new(&mut buf);
 
         let word = match self.endian {
@@ -114,11 +141,16 @@ impl<R: Read> ReaderBinary<R> {
 }
 
 pub trait OperandReadBinary: Sized {
-    fn read(inst: &RawInstruction) -> Result<Self, ReadError>;
+    fn read(view: &mut RawInstructionView) -> Result<Self, ReadError>;
 }
 
 impl OperandReadBinary for Id {
-    fn read(inst: &RawInstruction) -> Result<Id, ReadError> {
-        unimplemented!()
+    fn read(view: &mut RawInstructionView) -> Result<Id, ReadError> {
+        if let Some(id) = view.peek() {
+            view.advance();
+            Ok(Id(id))
+        } else {
+            Err(ReadError::OutOfOperands)
+        }
     }
 }

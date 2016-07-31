@@ -3,7 +3,7 @@
 
 /// A numerical ID to refer to an object, type, function, label, ...
 #[derive(Debug)]
-pub struct Id(u32);
+pub struct Id(pub u32);
 
 pub type IdResult = Id;
 pub type IdResultType = Id;
@@ -12,7 +12,7 @@ pub type IdRef = Id;
 pub type IdScope = Id;
 pub type IdMemorySemantics = Id;
 
-pub struct Literal(String);
+pub struct Literal(pub String);
 
 pub type LiteralInteger = Literal;
 pub type LiteralExtInstInteger = Literal;
