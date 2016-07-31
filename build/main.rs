@@ -57,6 +57,7 @@ fn build_core_instructions<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -
     try!(writeln!(dest, "use core::enumeration::*;"));
     try!(writeln!(dest, ""));
 
+    try!(writeln!(dest, "enum_from_primitive! {{"));
     try!(writeln!(dest, "pub enum OpCode {{"));
     dest.ident(); {
         for op in grammar["instructions"].members() {
@@ -64,7 +65,7 @@ fn build_core_instructions<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -
         }
     } dest.unident();
     try!(writeln!(dest, ""));
-    try!(writeln!(dest, "}}"));
+    try!(writeln!(dest, "}}}}"));
 
     for op in grammar["instructions"].members() {
         if op["operands"].is_null() {
@@ -120,6 +121,7 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
             "ValueEnum" => {
                 // generate new C-like enum
                 let ref enum_name = op_kind["kind"];
+                try!(writeln!(dest, "enum_from_primitive! {{"));
                 try!(writeln!(dest, "#[derive(Debug)]"));
                 try!(writeln!(dest, "pub enum {} {{", enum_name));
 
@@ -134,7 +136,7 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
                     }
                 } dest.unident();
 
-                try!(writeln!(dest, "}}"));
+                try!(writeln!(dest, "}}}}"));
                 try!(writeln!(dest, ""));
             },
 

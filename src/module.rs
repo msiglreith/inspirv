@@ -24,8 +24,6 @@ pub enum Generator {
     Unknown(u32),
 }
 
-
-
 /// Header description following SPIR-V specs(1.1), Section 2.3
 pub struct Header {
     pub magic_number: u32,
