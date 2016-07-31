@@ -9,6 +9,9 @@ use std::fs::{DirBuilder, File};
 
 // Build SPIR-V information depeding on the official grammar
 fn main() {
+    println!("cargo:rerun-if-changed=build/main.rs");
+    println!("cargo:rerun-if-changed=grammar/spirv.core.grammar.json");
+
     // Load SPIR-V grammar from the official Khronos registry
     // Current version: SPIR-V 1.1
     // TODO: load .json directly from registry: "https://www.khronos.org/registry/spir-v/api/1.1/spirv.core.grammar.json"
