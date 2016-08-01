@@ -135,6 +135,7 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
     try!(writeln!(dest, "use read_binary::{{RawInstructionView, ReadBinaryExt}};"));
     try!(writeln!(dest, "use io::ReadError;"));
     try!(writeln!(dest, "use num_traits::FromPrimitive;"));
+    try!(writeln!(dest, "use types::*;"));
     try!(writeln!(dest, ""));
 
     for op_kind in grammar["operand_kinds"].members() {
@@ -185,11 +186,27 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
                     try!(writeln!(dest, "pub enum {} {{", enum_name)); dest.ident(); {
                          for enumerant in op_kind["enumerants"].members() {
                             // prefix required due to some enums like '1D', '2D', etc.
-                            // TODO: emit parameters
-                            try!(writeln!(dest, "{prefix}{name},",
+                            if enumerant["parameters"].is_null() {
+                                try!(writeln!(dest, "{prefix}{name},",
                                     name=enumerant["enumerant"],
                                     prefix=enum_name
-                            ));
+                                ));
+                            } else {
+                                try!(writeln!(dest, "{prefix}{name}(",
+                                    name=enumerant["enumerant"],
+                                    prefix=enum_name
+                                )); dest.ident(); {
+                                    for param in enumerant["parameters"].members() {
+                                        let comment = if !param["name"].is_null() {
+                                            format!(" // {}", param["name"]).chars().filter(|c| *c != '\n').collect::<String>()
+                                        } else {
+                                            String::new()
+                                        };
+
+                                        try!(writeln!(dest, "{ty},{comment}", ty=param["kind"], comment=comment));
+                                    }
+                                } dest.unident(); try!(writeln!(dest, "),"));
+                            }
                         }
                     } dest.unident(); try!(writeln!(dest, "}}"));
                     try!(writeln!(dest, ""));
@@ -202,6 +219,7 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
                     try!(writeln!(dest, ""));
 
                 } else {
+                    // no parameters -> C-like enum only
                     let ref enum_name = op_kind["kind"];
                     try!(writeln!(dest, "enum_from_primitive! {{"));
                     try!(writeln!(dest, "#[derive(Debug)]"));

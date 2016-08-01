@@ -12,7 +12,9 @@ pub type IdRef = Id;
 pub type IdScope = Id;
 pub type IdMemorySemantics = Id;
 
+#[derive(Debug)]
 pub struct LiteralString(pub String);
+#[derive(Debug)]
 pub struct LiteralInteger(pub u32); // TODO: verify!
 
 pub type LiteralExtInstInteger = LiteralInteger;
