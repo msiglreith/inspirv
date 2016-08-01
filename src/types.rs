@@ -12,14 +12,13 @@ pub type IdRef = Id;
 pub type IdScope = Id;
 pub type IdMemorySemantics = Id;
 
-pub struct Literal(pub String);
+pub struct LiteralString(pub String);
+pub struct LiteralInteger(pub u32); // TODO: verify!
 
-pub type LiteralInteger = Literal;
-pub type LiteralExtInstInteger = Literal;
-pub type LiteralString = Literal;
-pub type LiteralContextDependentNumber = Literal;
-pub type LiteralSpecConstantOpInteger = Literal;
+pub type LiteralExtInstInteger = LiteralInteger;
+pub type LiteralContextDependentNumber = LiteralInteger;
+pub type LiteralSpecConstantOpInteger = LiteralInteger;
 
-pub struct PairIdRefIdRef(IdRef, IdRef);
-pub struct PairIdRefLiteralInteger(IdRef, LiteralInteger);
-pub struct PairLiteralIntegerIdRef(LiteralInteger, IdRef);
+pub type PairIdRefIdRef = (IdRef, IdRef);
+pub type PairIdRefLiteralInteger = (IdRef, LiteralInteger);
+pub type PairLiteralIntegerIdRef = (LiteralInteger, IdRef);

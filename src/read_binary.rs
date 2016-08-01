@@ -144,14 +144,38 @@ pub trait ReadBinaryExt: Sized {
     fn read(view: &mut RawInstructionView) -> Result<Self, ReadError>;
 }
 
-impl ReadBinaryExt for Id {
-    fn read(view: &mut RawInstructionView) -> Result<Id, ReadError> {
-        if let Some(id) = view.peek() {
+impl ReadBinaryExt for u32 {
+    fn read(view: &mut RawInstructionView) -> Result<Self, ReadError> {
+        if let Some(word) = view.peek() {
             view.advance();
-            Ok(Id(id))
+            Ok(word)
         } else {
             Err(ReadError::OutOfOperands)
         }
+    }
+}
+
+impl ReadBinaryExt for Id {
+    fn read(view: &mut RawInstructionView) -> Result<Self, ReadError> {
+        Ok(Id(try!(u32::read(view))))
+    }
+}
+
+impl ReadBinaryExt for LiteralInteger {
+    fn read(view: &mut RawInstructionView) -> Result<Self, ReadError> {
+        Ok(LiteralInteger(try!(u32::read(view))))
+    }
+}
+
+impl ReadBinaryExt for LiteralString {
+    fn read(view: &mut RawInstructionView) -> Result<Self, ReadError> {
+        unimplemented!()
+    }
+}
+
+impl<U: ReadBinaryExt, V: ReadBinaryExt> ReadBinaryExt for (U, V) {
+    fn read(view: &mut RawInstructionView) -> Result<Self, ReadError> {
+        Ok((try!(U::read(view)), try!(V::read(view))))
     }
 }
 
@@ -163,3 +187,19 @@ impl<T: ReadBinaryExt> ReadBinaryExt for Option<T> {
         }
     }
 }
+
+impl<T: ReadBinaryExt> ReadBinaryExt for Vec<T> {
+    fn read(view: &mut RawInstructionView) -> Result<Self, ReadError> {
+        let mut data = Vec::new();
+        while view.operand_offset < view.data.operands.len() {
+            if let Some(val) = try!(Option::<T>::read(view)) {
+                data.push(val);
+            } else {
+                break;
+            }
+        }
+
+        Ok(data)
+    }
+}
+
