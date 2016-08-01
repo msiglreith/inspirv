@@ -4,19 +4,15 @@ use std::io::{Cursor, Read};
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use num_traits::FromPrimitive;
 
+use core::SPIRV_MAGIC;
+use instruction::{Instruction, RawInstruction};
 use io::ReadError;
 use module::{Generator, GeneratorId, Header};
 use types::*;
-use core::SPIRV_MAGIC;
 
 enum Endian {
     Little,
     Big,
-}
-
-pub struct RawInstruction {
-    pub opcode: u32,
-    pub operands: Vec<u32>,
 }
 
 pub struct RawInstructionView<'a> {
@@ -126,7 +122,7 @@ impl<R: Read> ReaderBinary<R> {
         Ok(word)
     }
 
-    pub fn read_instruction_raw(&mut self) -> Result<RawInstruction, ReadError> {
+    fn read_instruction_raw(&mut self) -> Result<RawInstruction, ReadError> {
         let first = try!(self.read_u32());
         let opcode = first & 0xFFFF;
         let mut words = {
@@ -142,6 +138,10 @@ impl<R: Read> ReaderBinary<R> {
             opcode: opcode,
             operands: words,
         })
+    }
+
+    pub fn read_instruction(&mut self) -> Result<Instruction, ReadError> {
+        unimplemented!()
     }
 }
 
