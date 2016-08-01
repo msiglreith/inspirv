@@ -213,7 +213,29 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
 
                     try!(writeln!(dest, "impl ReadBinaryExt for {enum_name} {{", enum_name=enum_name)); dest.ident(); {
                         try!(writeln!(dest, "fn read(view: &mut RawInstructionView) -> Result<Self, ReadError> {{")); dest.ident(); {
-                            try!(writeln!(dest, "unimplemented!()"));
+                            try!(writeln!(dest, "let kind = try!({enum_name}Kind::read(view));", enum_name=enum_name));
+                            try!(writeln!(dest, "let mode = match kind {{")); dest.ident(); {
+                                for enumerant in op_kind["enumerants"].members() {
+                                    if enumerant["parameters"].is_null() {
+                                        try!(writeln!(dest, "{enum_name}Kind::{prefix}{name} => {enum_name}::{prefix}{name},",
+                                            enum_name=enum_name,
+                                            prefix=enum_name,
+                                            name=enumerant["enumerant"]
+                                        ));
+                                    } else {
+                                        try!(writeln!(dest, "{enum_name}Kind::{prefix}{name} => {enum_name}::{prefix}{name}(",
+                                            enum_name=enum_name,
+                                            prefix=enum_name,
+                                            name=enumerant["enumerant"]
+                                        )); dest.ident(); { 
+                                            for param in enumerant["parameters"].members() {
+                                                try!(writeln!(dest, "try!({ty}::read(view)),", ty=param["kind"]));
+                                            }
+                                        } dest.unident(); try!(writeln!(dest, "),"));
+                                    }
+                                }
+                            } dest.unident(); try!(writeln!(dest, "}};"));
+                            try!(writeln!(dest, "Ok(mode)"));
                         } dest.unident(); try!(writeln!(dest, "}}"));
                     } dest.unident(); try!(writeln!(dest, "}}"));
                     try!(writeln!(dest, ""));
