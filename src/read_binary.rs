@@ -32,8 +32,9 @@ impl<'a> RawInstructionView<'a> {
         }
     }
 
+    // TODO: merge peek&advance to consume? depends on optional data!
     pub fn peek(&mut self) -> Option<u32> {
-        if self.operand_offset >= self.data.operands.len() {
+        if !self.has_words() {
             None
         } else {
             let word = self.data.operands[self.operand_offset];
@@ -43,6 +44,10 @@ impl<'a> RawInstructionView<'a> {
 
     pub fn advance(&mut self) {
         self.operand_offset += 1;
+    }
+
+    pub fn has_words(&self) -> bool {
+        self.operand_offset < self.data.operands.len()
     }
 }
 
@@ -155,6 +160,27 @@ impl ReadBinaryExt for u32 {
     }
 }
 
+// TODO: high: untested!
+impl ReadBinaryExt for String {
+    fn read(view: &mut RawInstructionView) -> Result<Self, ReadError> {
+        let mut buf = Vec::new();
+        'chars: while view.has_words() {
+            let mut word = try!(u32::read(view));
+            // handle utf8
+            for _ in 0..4 {
+                if (word & 0xFF) == 0 {
+                    break 'chars;
+                }
+
+                buf.push((word & 0xFF) as u8);
+                word >>= 8;
+            }
+        }
+
+        Ok(String::from_utf8_lossy(&buf).into_owned())
+    }
+}
+
 impl ReadBinaryExt for Id {
     fn read(view: &mut RawInstructionView) -> Result<Self, ReadError> {
         Ok(Id(try!(u32::read(view))))
@@ -169,7 +195,7 @@ impl ReadBinaryExt for LiteralInteger {
 
 impl ReadBinaryExt for LiteralString {
     fn read(view: &mut RawInstructionView) -> Result<Self, ReadError> {
-        unimplemented!()
+        Ok(LiteralString(try!(String::read(view))))
     }
 }
 
@@ -179,6 +205,7 @@ impl<U: ReadBinaryExt, V: ReadBinaryExt> ReadBinaryExt for (U, V) {
     }
 }
 
+// TODO: high: we currently consume the data, might fail?
 impl<T: ReadBinaryExt> ReadBinaryExt for Option<T> {
     fn read(view: &mut RawInstructionView) -> Result<Self, ReadError> {
         match T::read(view) {
@@ -191,7 +218,7 @@ impl<T: ReadBinaryExt> ReadBinaryExt for Option<T> {
 impl<T: ReadBinaryExt> ReadBinaryExt for Vec<T> {
     fn read(view: &mut RawInstructionView) -> Result<Self, ReadError> {
         let mut data = Vec::new();
-        while view.operand_offset < view.data.operands.len() {
+        while view.has_words() {
             if let Some(val) = try!(Option::<T>::read(view)) {
                 data.push(val);
             } else {
