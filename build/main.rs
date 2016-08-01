@@ -139,32 +139,94 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
 
     for op_kind in grammar["operand_kinds"].members() {
         let kind_type = op_kind["category"].as_str().unwrap();
+        let has_parameters = {
+            let mut param_found = false;
+            for enumerant in op_kind["enumerants"].members() {
+                if !enumerant["parameters"].is_null() {
+                    param_found = true;
+                    break;
+                }
+            }
+            param_found
+        };
+
         match kind_type {
             "ValueEnum" => {
                 // generate new C-like enum
-                let ref enum_name = op_kind["kind"];
-                try!(writeln!(dest, "enum_from_primitive! {{"));
-                try!(writeln!(dest, "#[derive(Debug)]"));
-                try!(writeln!(dest, "pub enum {} {{", enum_name)); dest.ident(); {
-                    for enumerant in op_kind["enumerants"].members() {
-                        // prefix required due to some enums like '1D', '2D', etc.
-                        try!(writeln!(dest, "{prefix}{name} = {value},",
-                                name=enumerant["enumerant"],
-                                prefix=enum_name,
-                                value=enumerant["value"]
-                        ));
-                    }
-                } dest.unident(); try!(writeln!(dest, "}}}}"));
-                try!(writeln!(dest, ""));
+                if has_parameters {
+                    // emit C-like kind of the enum excluding the parameters
+                    let ref enum_name = op_kind["kind"];
+                    try!(writeln!(dest, "enum_from_primitive! {{"));
+                    try!(writeln!(dest, "#[derive(Debug)]"));
+                    
+                    try!(writeln!(dest, "pub enum {}Kind {{", enum_name)); dest.ident(); {
+                        for enumerant in op_kind["enumerants"].members() {
+                            // prefix required due to some enums like '1D', '2D', etc.
+                            try!(writeln!(dest, "{prefix}{name} = {value},",
+                                    name=enumerant["enumerant"],
+                                    prefix=enum_name,
+                                    value=enumerant["value"]
+                            ));
+                        }
+                    } dest.unident(); try!(writeln!(dest, "}}}}"));
+                    try!(writeln!(dest, ""));
 
-                try!(writeln!(dest, "impl ReadBinaryExt for {enum_name} {{", enum_name=enum_name)); dest.ident(); {
-                    try!(writeln!(dest, "fn read(view: &mut RawInstructionView) -> Result<Self, ReadError> {{")); dest.ident(); {
-                        try!(writeln!(dest, "let word = try!(u32::read(view));"));
-                        try!(writeln!(dest, "if let Some(val) = {enum_name}::from_u32(word) {{ Ok(val) }}", enum_name=enum_name));
-                        try!(writeln!(dest, "else {{ Err(ReadError::InvalidEnumValue(word)) }}"));
+                    try!(writeln!(dest, "impl ReadBinaryExt for {enum_name}Kind {{", enum_name=enum_name)); dest.ident(); {
+                        try!(writeln!(dest, "fn read(view: &mut RawInstructionView) -> Result<Self, ReadError> {{")); dest.ident(); {
+                            try!(writeln!(dest, "let word = try!(u32::read(view));"));
+                            try!(writeln!(dest, "if let Some(val) = {enum_name}Kind::from_u32(word) {{ Ok(val) }}", enum_name=enum_name));
+                            try!(writeln!(dest, "else {{ Err(ReadError::InvalidEnumValue(word)) }}"));
+                        } dest.unident(); try!(writeln!(dest, "}}"));
                     } dest.unident(); try!(writeln!(dest, "}}"));
-                } dest.unident(); try!(writeln!(dest, "}}"));
-                try!(writeln!(dest, ""));
+                    try!(writeln!(dest, ""));
+
+                    // emit actual enum with parameters
+                    try!(writeln!(dest, "#[derive(Debug)]"));
+                    try!(writeln!(dest, "pub enum {} {{", enum_name)); dest.ident(); {
+                         for enumerant in op_kind["enumerants"].members() {
+                            // prefix required due to some enums like '1D', '2D', etc.
+                            // TODO: emit parameters
+                            try!(writeln!(dest, "{prefix}{name},",
+                                    name=enumerant["enumerant"],
+                                    prefix=enum_name
+                            ));
+                        }
+                    } dest.unident(); try!(writeln!(dest, "}}"));
+                    try!(writeln!(dest, ""));
+
+                    try!(writeln!(dest, "impl ReadBinaryExt for {enum_name} {{", enum_name=enum_name)); dest.ident(); {
+                        try!(writeln!(dest, "fn read(view: &mut RawInstructionView) -> Result<Self, ReadError> {{")); dest.ident(); {
+                            try!(writeln!(dest, "unimplemented!()"));
+                        } dest.unident(); try!(writeln!(dest, "}}"));
+                    } dest.unident(); try!(writeln!(dest, "}}"));
+                    try!(writeln!(dest, ""));
+
+                } else {
+                    let ref enum_name = op_kind["kind"];
+                    try!(writeln!(dest, "enum_from_primitive! {{"));
+                    try!(writeln!(dest, "#[derive(Debug)]"));
+                    
+                    try!(writeln!(dest, "pub enum {} {{", enum_name)); dest.ident(); {
+                        for enumerant in op_kind["enumerants"].members() {
+                            // prefix required due to some enums like '1D', '2D', etc.
+                            try!(writeln!(dest, "{prefix}{name} = {value},",
+                                    name=enumerant["enumerant"],
+                                    prefix=enum_name,
+                                    value=enumerant["value"]
+                            ));
+                        }
+                    } dest.unident(); try!(writeln!(dest, "}}}}"));
+                    try!(writeln!(dest, ""));
+
+                    try!(writeln!(dest, "impl ReadBinaryExt for {enum_name} {{", enum_name=enum_name)); dest.ident(); {
+                        try!(writeln!(dest, "fn read(view: &mut RawInstructionView) -> Result<Self, ReadError> {{")); dest.ident(); {
+                            try!(writeln!(dest, "let word = try!(u32::read(view));"));
+                            try!(writeln!(dest, "if let Some(val) = {enum_name}::from_u32(word) {{ Ok(val) }}", enum_name=enum_name));
+                            try!(writeln!(dest, "else {{ Err(ReadError::InvalidEnumValue(word)) }}"));
+                        } dest.unident(); try!(writeln!(dest, "}}"));
+                    } dest.unident(); try!(writeln!(dest, "}}"));
+                    try!(writeln!(dest, ""));
+                }
             },
 
             "BitEnum" => {
