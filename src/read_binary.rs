@@ -4,7 +4,7 @@ use std::io::{Cursor, Read};
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use num_traits::FromPrimitive;
 
-use super::ReadError;
+use io::ReadError;
 use module::{Generator, GeneratorId, Header};
 use types::*;
 use core::SPIRV_MAGIC;
@@ -140,17 +140,26 @@ impl<R: Read> ReaderBinary<R> {
     }
 }
 
-pub trait OperandReadBinary: Sized {
+pub trait ReadBinaryExt: Sized {
     fn read(view: &mut RawInstructionView) -> Result<Self, ReadError>;
 }
 
-impl OperandReadBinary for Id {
+impl ReadBinaryExt for Id {
     fn read(view: &mut RawInstructionView) -> Result<Id, ReadError> {
         if let Some(id) = view.peek() {
             view.advance();
             Ok(Id(id))
         } else {
             Err(ReadError::OutOfOperands)
+        }
+    }
+}
+
+impl<T: ReadBinaryExt> ReadBinaryExt for Option<T> {
+    fn read(view: &mut RawInstructionView) -> Result<Self, ReadError> {
+        match T::read(view) {
+            Ok(x) => Ok(Some(x)),
+            _ => Ok(None),
         }
     }
 }
