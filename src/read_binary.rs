@@ -4,8 +4,9 @@ use std::io::{Cursor, ErrorKind, Read};
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use num_traits::FromPrimitive;
 
+use core;
 use core::SPIRV_MAGIC;
-use instruction::{Instruction, RawInstruction};
+use instruction::{Instruction, OpCode, RawInstruction};
 use io::ReadError;
 use module::{Generator, GeneratorId, Header};
 use types::*;
@@ -21,13 +22,6 @@ pub struct RawInstructionView<'a> {
 }
 
 impl<'a> RawInstructionView<'a> {
-    pub fn new(instruction: &'a RawInstruction) -> Self {
-        RawInstructionView {
-            data: instruction,
-            operand_offset: 0,
-        }
-    }
-
     // TODO: merge peek&advance to consume? depends on optional data!
     pub fn peek(&mut self) -> Option<u32> {
         if !self.has_words() {
@@ -44,6 +38,15 @@ impl<'a> RawInstructionView<'a> {
 
     pub fn has_words(&self) -> bool {
         self.operand_offset < self.data.operands.len()
+    }
+}
+
+impl<'a> RawInstruction {
+    pub fn as_view(&'a self) -> RawInstructionView<'a> {
+        RawInstructionView {
+            data: self,
+            operand_offset: 0,
+        }
     }
 }
 
@@ -150,7 +153,13 @@ impl<R: Read> ReaderBinary<R> {
             Err(x) => return Err(x),
         };
 
-        Ok(Some(Instruction::Unknown(raw)))
+        let opcode = OpCode::from_u32(raw.opcode);
+        let instr = match opcode {
+            OpCode::Core(c) => Instruction::Core(try!(core::instruction::Instruction::from_raw(c, &mut raw.as_view()))),
+            OpCode::Unknown(_) => Instruction::Unknown(raw),
+        };
+
+        Ok(Some(instr))
     }
 }
 

@@ -77,6 +77,18 @@ fn build_core_instructions<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -
     } dest.unident(); try!(writeln!(dest, "}}"));
     try!(writeln!(dest, ""));
 
+    try!(writeln!(dest, "impl Instruction {{")); dest.ident(); {
+        try!(writeln!(dest, "pub fn from_raw(opcode: OpCode, view: &mut RawInstructionView) -> Result<Self, ReadError> {{")); dest.ident(); {
+            try!(writeln!(dest, "let instr = match opcode {{")); dest.ident(); {
+                for op in grammar["instructions"].members() {
+                    try!(writeln!(dest, "OpCode::{name} => Instruction::{name}(try!({name}::read(view))),", name=op["opname"]));
+                }
+            } dest.unident(); try!(writeln!(dest, "}};"));
+            try!(writeln!(dest, "Ok(instr)"));
+        } dest.unident(); try!(writeln!(dest, "}}"));
+    } dest.unident(); try!(writeln!(dest, "}}"));
+    try!(writeln!(dest, ""));
+
     try!(writeln!(dest, "impl InstructionExt for Instruction {{")); dest.ident(); {
         try!(writeln!(dest, "type OpCodeType = OpCode;"));
         try!(writeln!(dest, "fn opcode(&self) -> Self::OpCodeType {{ unimplemented!() }}"));

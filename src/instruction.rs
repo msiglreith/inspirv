@@ -1,5 +1,6 @@
 
 use core::instruction as core;
+use num_traits::FromPrimitive;
 
 #[derive(Debug)]
 pub struct RawInstruction {
@@ -37,6 +38,16 @@ impl InstructionExt for Instruction {
         match self {
             &Instruction::Core(ref instr) => OpCode::Core(instr.opcode()),
             &Instruction::Unknown(ref instr) => OpCode::Unknown(instr.opcode()),
+        }
+    }
+}
+
+impl OpCode {
+    pub fn from_u32(n: u32) -> OpCode {
+        if let Some(opcode) = core::OpCode::from_u32(n) {
+            OpCode::Core(opcode)
+        } else {
+            OpCode::Unknown(n)
         }
     }
 }
