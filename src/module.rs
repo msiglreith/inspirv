@@ -2,7 +2,7 @@
 // SPIR-V generators IDs
 // Following: https://github.com/KhronosGroup/SPIRV-Headers/blob/master/include/spirv/spir-v.xml
 enum_from_primitive! {
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum GeneratorId {
     Khronos = 0,
     LunarG = 1,
@@ -18,13 +18,14 @@ pub enum GeneratorId {
     Intel = 11,
 }}
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum Generator {
     Id(GeneratorId),
     Unknown(u32),
 }
 
 /// Header description following SPIR-V specs(1.1), Section 2.3
+#[derive(Clone, Copy, Debug)]
 pub struct Header {
     pub magic_number: u32,
     pub version: (u32, u32), // major, minor

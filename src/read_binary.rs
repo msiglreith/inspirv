@@ -101,6 +101,7 @@ impl<R: Read> ReaderBinary<R> {
         };
 
         let bound = try!(reader.read_u32());
+        let _reserved = try!(reader.read_u32()); // 0 (Reserved for instruction schema, if needed.)
 
         reader.header = Header {
             magic_number: SPIRV_MAGIC,
@@ -160,6 +161,10 @@ impl<R: Read> ReaderBinary<R> {
 
         Ok(Some(instr))
     }
+
+    pub fn get_header(&self) -> Header {
+        self.header
+    }
 }
 
 pub trait ReadBinaryExt: Sized {
@@ -177,9 +182,12 @@ impl ReadBinaryExt for u32 {
     }
 }
 
-// TODO: high: untested!
 impl ReadBinaryExt for String {
     fn read(view: &mut RawInstructionView) -> Result<Self, ReadError> {
+        if !view.has_words() {
+            return Err(ReadError::ExpectedWord);
+        }
+        
         let mut buf = Vec::new();
         'chars: while view.has_words() {
             let mut word = try!(u32::read(view));

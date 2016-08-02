@@ -8,6 +8,7 @@ pub enum ReadError {
     InvalidSpirvMagic(u32),
     InvalidEnumValue(u32),
     OutOfOperands, // TODO: some better error message, containing actual information
+    ExpectedWord,
 }
 
 impl From<io::Error> for ReadError {

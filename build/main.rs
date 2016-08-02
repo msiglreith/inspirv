@@ -61,7 +61,7 @@ fn build_core_instructions<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -
     try!(writeln!(dest, ""));
 
     try!(writeln!(dest, "enum_from_primitive! {{"));
-    try!(writeln!(dest, "#[derive(Debug)]"));
+    try!(writeln!(dest, "#[derive(Clone, Copy, Debug)]"));
     try!(writeln!(dest, "pub enum OpCode {{")); dest.ident(); {
         for op in grammar["instructions"].members() {
             try!(writeln!(dest, "{name} = {value},", name=op["opname"], value=op["opcode"]));
@@ -87,12 +87,27 @@ fn build_core_instructions<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -
             } dest.unident(); try!(writeln!(dest, "}};"));
             try!(writeln!(dest, "Ok(instr)"));
         } dest.unident(); try!(writeln!(dest, "}}"));
+        try!(writeln!(dest, "pub fn to_raw(&self) -> RawInstruction {{")); dest.ident(); {
+            try!(writeln!(dest, "let mut raw_instr = RawInstruction {{ opcode: self.opcode() as u32, operands: Vec::new() }};"));
+            try!(writeln!(dest, "match self {{")); dest.ident(); {
+                for op in grammar["instructions"].members() {
+                    try!(writeln!(dest, "&Instruction::{name}(ref instr) => instr.write(&mut raw_instr),", name=op["opname"]));
+                }
+            } dest.unident(); try!(writeln!(dest, "}};"));
+            try!(writeln!(dest, "raw_instr"));
+        } dest.unident(); try!(writeln!(dest, "}}"));
     } dest.unident(); try!(writeln!(dest, "}}"));
     try!(writeln!(dest, ""));
 
     try!(writeln!(dest, "impl InstructionExt for Instruction {{")); dest.ident(); {
         try!(writeln!(dest, "type OpCodeType = OpCode;"));
-        try!(writeln!(dest, "fn opcode(&self) -> Self::OpCodeType {{ unimplemented!() }}"));
+        try!(writeln!(dest, "fn opcode(&self) -> Self::OpCodeType {{")); dest.ident(); {
+            try!(writeln!(dest, "match self {{")); dest.ident(); {
+                for op in grammar["instructions"].members() {
+                    try!(writeln!(dest, "&Instruction::{name}(_) => OpCode::{name},", name=op["opname"]));
+                }
+            } dest.unident(); try!(writeln!(dest, "}}"));
+        } dest.unident(); try!(writeln!(dest, "}}"));
     } dest.unident(); try!(writeln!(dest, "}}"));
     try!(writeln!(dest, ""));
 

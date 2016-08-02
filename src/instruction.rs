@@ -20,6 +20,7 @@ pub enum OpCode {
     Unknown(u32),
 }
 
+// TODO: low: we maybe want to remove this in the future, depends if it's use later on
 pub trait InstructionExt {
     type OpCodeType;
     fn opcode(&self) -> Self::OpCodeType;

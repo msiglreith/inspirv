@@ -36,11 +36,13 @@ impl<W: Write> WriterBinary<W> {
 
         try!(self.write_u32(header.bound));
 
+        try!(self.write_u32(0)); // 0 (Reserved for instruction schema, if needed.)
+
         Ok(())
     }
 
     fn write_raw_instruction(&mut self, raw: &RawInstruction) -> Result<()> {
-        let first = (raw.opcode & 0xFFFF) | ((raw.operands.len() as u32 & 0xFFFF) << 16);
+        let first = (raw.opcode & 0xFFFF) | (((raw.operands.len() as u32 + 1) & 0xFFFF) << 16);
         try!(self.write_u32(first));
 
         for operand in raw.operands.iter() {
@@ -51,7 +53,10 @@ impl<W: Write> WriterBinary<W> {
     }
 
     pub fn write_instruction(&mut self, instr: &Instruction) -> Result<()> {
-        unimplemented!()
+        match instr {
+            &Instruction::Core(ref core) => self.write_raw_instruction(&core.to_raw()),
+            &Instruction::Unknown(ref raw) => self.write_raw_instruction(raw),
+        }
     }
 }
 
@@ -79,7 +84,15 @@ impl WriteBinaryExt for LiteralInteger {
 
 impl WriteBinaryExt for LiteralString {
     fn write(&self, instr: &mut RawInstruction) {
-        unimplemented!()
+        let mut chars = &mut self.0.chars();
+        for _ in 0 .. (self.0.chars().count() / 4) + 1 {
+            let mut word: u32 = 0;
+            word |= chars.next().unwrap_or(0 as char) as u32 & 0xFF;
+            word |= (chars.next().unwrap_or(0 as char) as u32 & 0xFF) << 8;
+            word |= (chars.next().unwrap_or(0 as char) as u32 & 0xFF) << 16;
+            word |= (chars.next().unwrap_or(0 as char) as u32 & 0xFF) << 24;
+            word.write(instr);
+        }
     }
 }
 
