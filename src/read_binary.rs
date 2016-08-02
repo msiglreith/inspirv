@@ -1,6 +1,6 @@
 
 use std::result::Result;
-use std::io::{Cursor, Read};
+use std::io::{Cursor, ErrorKind, Read};
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use num_traits::FromPrimitive;
 
@@ -122,8 +122,12 @@ impl<R: Read> ReaderBinary<R> {
         Ok(word)
     }
 
-    fn read_instruction_raw(&mut self) -> Result<RawInstruction, ReadError> {
-        let first = try!(self.read_u32());
+    fn read_instruction_raw(&mut self) -> Result<Option<RawInstruction>, ReadError> {
+        let first = match self.read_u32() {
+            Ok(word) => word,
+            Err(ReadError::Io(ref err)) if err.kind() == ErrorKind::UnexpectedEof => return Ok(None),
+            Err(x) => return Err(x),
+        };
         let opcode = first & 0xFFFF;
         let num_words = ((first >> 16) & 0xFFFF).saturating_sub(1);
         let mut words = Vec::with_capacity(num_words as usize);
@@ -132,16 +136,21 @@ impl<R: Read> ReaderBinary<R> {
             words.push(try!(self.read_u32()));
         }
 
-        Ok(RawInstruction {
+        Ok(Some(RawInstruction {
             opcode: opcode,
             operands: words,
-        })
+        }))
     }
 
     // TODO
-    pub fn read_instruction(&mut self) -> Result<Instruction, ReadError> {
-        let raw = try!(self.read_instruction_raw());
-        Ok(Instruction::Unknown(raw))
+    pub fn read_instruction(&mut self) -> Result<Option<Instruction>, ReadError> {
+        let raw = match self.read_instruction_raw() {
+            Ok(Some(instr)) => instr,
+            Ok(None) => return Ok(None),
+            Err(x) => return Err(x),
+        };
+
+        Ok(Some(Instruction::Unknown(raw)))
     }
 }
 
