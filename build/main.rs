@@ -60,6 +60,7 @@ fn build_core_instructions<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -
     try!(writeln!(dest, ""));
 
     try!(writeln!(dest, "enum_from_primitive! {{"));
+    try!(writeln!(dest, "#[derive(Debug)]"));
     try!(writeln!(dest, "pub enum OpCode {{")); dest.ident(); {
         for op in grammar["instructions"].members() {
             try!(writeln!(dest, "{name} = {value},", name=op["opname"], value=op["opcode"]));
@@ -68,6 +69,7 @@ fn build_core_instructions<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -
     try!(writeln!(dest, ""));
 
     // enum for all instructions in core
+    try!(writeln!(dest, "#[derive(Debug)]"));
     try!(writeln!(dest, "pub enum Instruction {{")); dest.ident(); {
         for op in grammar["instructions"].members() {
             try!(writeln!(dest, "{name}({name}),", name=op["opname"]));
@@ -83,6 +85,7 @@ fn build_core_instructions<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -
 
     // generate data for each instruction
     for op in grammar["instructions"].members() {
+        try!(writeln!(dest, "#[derive(Debug)]"));
         if op["operands"].is_null() {
             try!(writeln!(dest, "pub struct {};", op["opname"]));
         }

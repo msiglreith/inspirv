@@ -125,13 +125,11 @@ impl<R: Read> ReaderBinary<R> {
     fn read_instruction_raw(&mut self) -> Result<RawInstruction, ReadError> {
         let first = try!(self.read_u32());
         let opcode = first & 0xFFFF;
-        let mut words = {
-            let num_words = (first >> 16) & 0xFFFF;
-            Vec::with_capacity(num_words as usize - 1)
-        };
+        let num_words = ((first >> 16) & 0xFFFF).saturating_sub(1);
+        let mut words = Vec::with_capacity(num_words as usize);
 
-        for i in 0 .. words.len() {
-            words[i] = try!(self.read_u32());
+        for _ in 0 .. num_words {
+            words.push(try!(self.read_u32()));
         }
 
         Ok(RawInstruction {
@@ -140,8 +138,10 @@ impl<R: Read> ReaderBinary<R> {
         })
     }
 
+    // TODO
     pub fn read_instruction(&mut self) -> Result<Instruction, ReadError> {
-        unimplemented!()
+        let raw = try!(self.read_instruction_raw());
+        Ok(Instruction::Unknown(raw))
     }
 }
 

@@ -1,19 +1,22 @@
 
 use core::instruction as core;
 
+#[derive(Debug)]
 pub struct RawInstruction {
     pub opcode: u32,
     pub operands: Vec<u32>,
 }
 
+#[derive(Debug)]
 pub enum Instruction {
     Core(core::Instruction),
-    Unkown(RawInstruction),
+    Unknown(RawInstruction),
 }
 
+#[derive(Debug)]
 pub enum OpCode {
     Core(core::OpCode),
-    Unkown(u32),
+    Unknown(u32),
 }
 
 pub trait InstructionExt {
@@ -33,7 +36,7 @@ impl InstructionExt for Instruction {
     fn opcode(&self) -> Self::OpCodeType {
         match self {
             &Instruction::Core(ref instr) => OpCode::Core(instr.opcode()),
-            &Instruction::Unkown(ref instr) => OpCode::Unkown(instr.opcode()),
+            &Instruction::Unknown(ref instr) => OpCode::Unknown(instr.opcode()),
         }
     }
 }
