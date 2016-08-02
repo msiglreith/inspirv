@@ -27,7 +27,7 @@ pub enum Generator {
 /// Header description following SPIR-V specs(1.1), Section 2.3
 pub struct Header {
     pub magic_number: u32,
-    pub version: (u32, u32),
+    pub version: (u32, u32), // major, minor
     pub generator: Generator,
     pub bound: u32,
 }

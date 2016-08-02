@@ -14,4 +14,5 @@ pub mod core;
 pub mod types;
 pub mod instruction;
 pub mod read_binary;
+pub mod write_binary;
 pub mod io;
