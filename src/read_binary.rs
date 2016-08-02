@@ -145,7 +145,6 @@ impl<R: Read> ReaderBinary<R> {
         }))
     }
 
-    // TODO
     pub fn read_instruction(&mut self) -> Result<Option<Instruction>, ReadError> {
         let raw = match self.read_instruction_raw() {
             Ok(Some(instr)) => instr,

@@ -1,6 +1,4 @@
 
-// TODO: These types are only temporary set, might change in the future
-
 /// A numerical ID to refer to an object, type, function, label, ...
 #[derive(Debug)]
 pub struct Id(pub u32);
@@ -17,6 +15,7 @@ pub struct LiteralString(pub String);
 #[derive(Debug)]
 pub struct LiteralInteger(pub u32); // TODO: verify!
 
+// TODO: These types are only temporary set, might change in the future
 pub type LiteralExtInstInteger = LiteralInteger;
 pub type LiteralContextDependentNumber = LiteralInteger;
 pub type LiteralSpecConstantOpInteger = LiteralInteger;
