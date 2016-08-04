@@ -1,6 +1,6 @@
 
 /// A numerical ID to refer to an object, type, function, label, ...
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct Id(pub u32);
 
 pub type IdResult = Id;

@@ -5,7 +5,7 @@ use instruction::{Instruction, RawInstruction};
 use byteorder::{LittleEndian, ByteOrder};
 use types::*;
 
-pub struct WriterBinary<W> {
+pub struct WriterBinary<W: Write> {
     inner: W,
 }
 
