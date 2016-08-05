@@ -364,7 +364,49 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
 
                     try!(writeln!(dest, "impl OperandExt for {enum_name} {{", enum_name=enum_name)); dest.ident(); {
                         try!(writeln!(dest, "fn capabilities(&self) -> Vec<Capability> {{")); dest.ident(); {
-                            try!(writeln!(dest, "unimplemented!()"));
+                            try!(writeln!(dest, "let mut _capabilities = Vec::new();"));
+                            try!(writeln!(dest, "match *self {{")); dest.ident(); {
+                                for enumerant in op_kind["enumerants"].members() {
+                                    if enumerant["parameters"].is_null() {
+                                        try!(writeln!(dest, "{enum_name}::{prefix}{name} => {{",
+                                            enum_name=enum_name,
+                                            prefix=enum_name,
+                                            name=enumerant["enumerant"]
+                                        )); dest.ident(); {
+                                            // enum specific capabilities
+                                            for capability in op_kind["capabilities"].members() {
+                                                try!(writeln!(dest, "_capabilities.push(Capability::Capability{capability});",
+                                                    capability=capability));
+                                            }
+                                        } dest.unident(); try!(writeln!(dest, "}},"));
+                                    } else {
+                                        try!(writeln!(dest, "{enum_name}::{prefix}{name}(",
+                                            enum_name=enum_name,
+                                            prefix=enum_name,
+                                            name=enumerant["enumerant"]
+                                        )); dest.ident(); {
+                                            let mut cur_param = 0;
+                                            for _ in enumerant["parameters"].members() {
+                                                try!(writeln!(dest, "ref param{num},", num=cur_param));
+                                                cur_param += 1;
+                                            }
+                                        } dest.unident(); try!(writeln!(dest, ") => {{")); dest.ident(); {
+                                            // enum specific capabilities
+                                            for capability in op_kind["capabilities"].members() {
+                                                try!(writeln!(dest, "_capabilities.push(Capability::Capability{capability});",
+                                                    capability=capability));
+                                            }
+                                            // operand specific capabilities
+                                            let mut cur_param = 0;
+                                            for _ in enumerant["parameters"].members() {
+                                                try!(writeln!(dest, "_capabilities.extend(param{num}.capabilities());", num=cur_param));
+                                                cur_param += 1;
+                                            }
+                                        } dest.unident(); try!(writeln!(dest, "}},"));
+                                    }
+                                }
+                            } dest.unident(); try!(writeln!(dest, "}}"));
+                            try!(writeln!(dest, "_capabilities"));
                         } dest.unident(); try!(writeln!(dest, "}}"));
                     } dest.unident(); try!(writeln!(dest, "}}"));
                     try!(writeln!(dest, ""));
@@ -403,7 +445,23 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
                     
                     try!(writeln!(dest, "impl OperandExt for {enum_name} {{", enum_name=enum_name)); dest.ident(); {
                         try!(writeln!(dest, "fn capabilities(&self) -> Vec<Capability> {{")); dest.ident(); {
-                            try!(writeln!(dest, "unimplemented!()"));
+                            try!(writeln!(dest, "let mut _capabilities = Vec::new();"));
+                            try!(writeln!(dest, "match *self {{")); dest.ident(); {
+                                for enumerant in op_kind["enumerants"].members() {
+                                    try!(writeln!(dest, "{enum_name}::{prefix}{name} => {{",
+                                        enum_name=enum_name,
+                                        prefix=enum_name,
+                                        name=enumerant["enumerant"]
+                                    )); dest.ident(); {
+                                        // enum specific capabilities
+                                        for capability in op_kind["capabilities"].members() {
+                                            try!(writeln!(dest, "_capabilities.push(Capability::Capability{capability});",
+                                                capability=capability));
+                                        }
+                                    } dest.unident(); try!(writeln!(dest, "}},"));
+                                }
+                            } dest.unident(); try!(writeln!(dest, "}}"));
+                            try!(writeln!(dest, "_capabilities"));
                         } dest.unident(); try!(writeln!(dest, "}}"));
                     } dest.unident(); try!(writeln!(dest, "}}"));
                     try!(writeln!(dest, ""));
