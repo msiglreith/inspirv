@@ -55,7 +55,7 @@ fn build_core_instructions<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -
     try!(writeln!(dest, "use types::*;"));
     try!(writeln!(dest, "use read_binary::{{RawInstructionView, ReadBinaryExt}};"));
     try!(writeln!(dest, "use write_binary::WriteBinaryExt;"));
-    try!(writeln!(dest, "use instruction::{{InstructionExt, RawInstruction}};"));
+    try!(writeln!(dest, "use instruction::{{InstructionExt, OperandExt, RawInstruction}};"));
     try!(writeln!(dest, "use core::enumeration::*;"));
     try!(writeln!(dest, "use io::ReadError;"));
     try!(writeln!(dest, ""));
@@ -108,6 +108,13 @@ fn build_core_instructions<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -
                 }
             } dest.unident(); try!(writeln!(dest, "}}"));
         } dest.unident(); try!(writeln!(dest, "}}"));
+        try!(writeln!(dest, "fn capabilities(&self) -> Vec<Capability> {{")); dest.ident(); {
+            try!(writeln!(dest, "match *self {{")); dest.ident(); {
+                for op in grammar["instructions"].members() {
+                    try!(writeln!(dest, "Instruction::{name}(ref instr) => instr.capabilities(),", name=op["opname"]));
+                }
+            } dest.unident(); try!(writeln!(dest, "}}"));
+        } dest.unident(); try!(writeln!(dest, "}}"));
     } dest.unident(); try!(writeln!(dest, "}}"));
     try!(writeln!(dest, ""));
 
@@ -143,21 +150,35 @@ fn build_core_instructions<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -
         try!(writeln!(dest, "impl InstructionExt for {} {{", op["opname"])); dest.ident(); {
             try!(writeln!(dest, "type OpCodeType = OpCode;"));
             try!(writeln!(dest, "fn opcode(&self) -> Self::OpCodeType {{ OpCode::{} }}", op["opname"]));
+            try!(writeln!(dest, "fn capabilities(&self) -> Vec<Capability> {{")); dest.ident(); {
+                try!(writeln!(dest, "let mut _capabilities = Vec::new();"));
+                // instruction specific required capabilities
+                for capability in op["capabilities"].members() {
+                    try!(writeln!(dest, "_capabilities.push(Capability::Capability{capability});", capability=capability));
+                }
+                // operand specific required capabilities
+                let mut cur_operand = 0;
+                for _ in op["operands"].members() {
+                    try!(writeln!(dest, "_capabilities.extend(self.{num}.capabilities());", num=cur_operand));
+                    cur_operand += 1;
+                }
+                try!(writeln!(dest, "_capabilities"));
+            } dest.unident(); try!(writeln!(dest, "}}"));
         } dest.unident(); try!(writeln!(dest, "}}"));
 
         try!(writeln!(dest, "impl ReadBinaryExt for {} {{", op["opname"])); dest.ident(); {
-            try!(writeln!(dest, "fn read(view: &mut RawInstructionView) -> Result<Self, ReadError> {{")); dest.ident(); {
+            try!(writeln!(dest, "fn read(_view: &mut RawInstructionView) -> Result<Self, ReadError> {{")); dest.ident(); {
                 if op["operands"].is_null() {
                     try!(writeln!(dest, "Ok({instruction})", instruction=op["opname"]));
                 } else {
                     try!(writeln!(dest, "Ok({instruction} (", instruction=op["opname"])); dest.ident(); {
                         for operand in op["operands"].members() {
                             if operand["quantifier"].is_null() {
-                                try!(writeln!(dest, "try!({ty}::read(view)),", ty=operand["kind"]));
+                                try!(writeln!(dest, "try!({ty}::read(_view)),", ty=operand["kind"]));
                             } else if operand["quantifier"] == "?" {
-                                try!(writeln!(dest, "try!(Option::<{ty}>::read(view)),", ty=operand["kind"]));             
+                                try!(writeln!(dest, "try!(Option::<{ty}>::read(_view)),", ty=operand["kind"]));             
                             } else if operand["quantifier"] == "*" {
-                                try!(writeln!(dest, "try!(Vec::<{ty}>::read(view)),", ty=operand["kind"])); // TODO: emit Vec<_>?
+                                try!(writeln!(dest, "try!(Vec::<{ty}>::read(_view)),", ty=operand["kind"])); // TODO: emit Vec<_>?
                             } else {
                                 unimplemented!();
                             };
@@ -168,10 +189,10 @@ fn build_core_instructions<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -
         } dest.unident(); try!(writeln!(dest, "}}"));
 
         try!(writeln!(dest, "impl WriteBinaryExt for {} {{", op["opname"])); dest.ident(); {
-            try!(writeln!(dest, "fn write(&self, instr: &mut RawInstruction) {{")); dest.ident(); {
+            try!(writeln!(dest, "fn write(&self, _instr: &mut RawInstruction) {{")); dest.ident(); {
                 let mut cur_operand = 0;
                 for _ in op["operands"].members() {
-                    try!(writeln!(dest, "self.{num}.write(instr);", num=cur_operand));
+                    try!(writeln!(dest, "self.{num}.write(_instr);", num=cur_operand));
                     cur_operand += 1;
                 }
             } dest.unident(); try!(writeln!(dest, "}}"));
@@ -189,7 +210,7 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
     try!(writeln!(dest, "// WARNING: Generated by `build/main.rs`, do NOT change manually!"));
     try!(writeln!(dest, "use read_binary::{{RawInstructionView, ReadBinaryExt}};"));
     try!(writeln!(dest, "use write_binary::WriteBinaryExt;"));
-    try!(writeln!(dest, "use instruction::RawInstruction;"));
+    try!(writeln!(dest, "use instruction::{{OperandExt, RawInstruction}};"));
     try!(writeln!(dest, "use io::ReadError;"));
     try!(writeln!(dest, "use num_traits::FromPrimitive;"));
     try!(writeln!(dest, "use types::*;"));
@@ -304,7 +325,7 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
                     } dest.unident(); try!(writeln!(dest, "}}"));
                     try!(writeln!(dest, ""));
 
-                     try!(writeln!(dest, "impl WriteBinaryExt for {enum_name} {{", enum_name=enum_name)); dest.ident(); {
+                    try!(writeln!(dest, "impl WriteBinaryExt for {enum_name} {{", enum_name=enum_name)); dest.ident(); {
                         try!(writeln!(dest, "fn write(&self, instr: &mut RawInstruction) {{")); dest.ident(); {
                             try!(writeln!(dest, "match *self {{")); dest.ident(); {
                                 for enumerant in op_kind["enumerants"].members() {
@@ -340,6 +361,12 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
                             } dest.unident(); try!(writeln!(dest, "}}"));
                         } dest.unident(); try!(writeln!(dest, "}}"));
                     } dest.unident(); try!(writeln!(dest, "}}"));
+
+                    try!(writeln!(dest, "impl OperandExt for {enum_name} {{", enum_name=enum_name)); dest.ident(); {
+                        try!(writeln!(dest, "fn capabilities(&self) -> Vec<Capability> {{")); dest.ident(); {
+                            try!(writeln!(dest, "unimplemented!()"));
+                        } dest.unident(); try!(writeln!(dest, "}}"));
+                    } dest.unident(); try!(writeln!(dest, "}}"));
                     try!(writeln!(dest, ""));
 
                 } else {
@@ -373,6 +400,12 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
                             try!(writeln!(dest, "(*self as u32).write(instr);"));
                         } dest.unident(); try!(writeln!(dest, "}}"));
                     } dest.unident(); try!(writeln!(dest, "}}"));
+                    
+                    try!(writeln!(dest, "impl OperandExt for {enum_name} {{", enum_name=enum_name)); dest.ident(); {
+                        try!(writeln!(dest, "fn capabilities(&self) -> Vec<Capability> {{")); dest.ident(); {
+                            try!(writeln!(dest, "unimplemented!()"));
+                        } dest.unident(); try!(writeln!(dest, "}}"));
+                    } dest.unident(); try!(writeln!(dest, "}}"));
                     try!(writeln!(dest, ""));
                 }
             },
@@ -403,11 +436,18 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
                 } dest.unident(); try!(writeln!(dest, "}}"));
 
                 try!(writeln!(dest, "impl WriteBinaryExt for {enum_name} {{", enum_name=enum_name)); dest.ident(); {
-                        try!(writeln!(dest, "fn write(&self, instr: &mut RawInstruction) {{")); dest.ident(); {
-                            try!(writeln!(dest, "self.bits().write(instr);"));
-                        } dest.unident(); try!(writeln!(dest, "}}"));
+                    try!(writeln!(dest, "fn write(&self, instr: &mut RawInstruction) {{")); dest.ident(); {
+                        try!(writeln!(dest, "self.bits().write(instr);"));
                     } dest.unident(); try!(writeln!(dest, "}}"));
-                    try!(writeln!(dest, ""));
+                } dest.unident(); try!(writeln!(dest, "}}"));
+
+                try!(writeln!(dest, "impl OperandExt for {enum_name} {{", enum_name=enum_name)); dest.ident(); {
+                    try!(writeln!(dest, "fn capabilities(&self) -> Vec<Capability> {{")); dest.ident(); {
+                        try!(writeln!(dest, "unimplemented!()"));
+                    } dest.unident(); try!(writeln!(dest, "}}"));
+                } dest.unident(); try!(writeln!(dest, "}}"));
+
+                try!(writeln!(dest, ""));
             },
 
             _ => (),

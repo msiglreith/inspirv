@@ -1,11 +1,60 @@
 
+use core::enumeration::Capability;
 use core::instruction as core_instruction;
 use num_traits::FromPrimitive;
+use types::*;
 
-// TODO: low: we maybe want to remove this in the future, depends if it's use later on
 pub trait InstructionExt {
     type OpCodeType;
-    fn opcode(&self) -> Self::OpCodeType;
+    fn opcode(&self) -> Self::OpCodeType; // TODO: low: we maybe want to remove this in the future, depends if it's use later on
+    fn capabilities(&self) -> Vec<Capability>;
+}
+
+pub trait OperandExt {
+    fn capabilities(&self) -> Vec<Capability>;
+}
+
+impl OperandExt for Id {
+    fn capabilities(&self) -> Vec<Capability> { Vec::new() }
+}
+
+impl OperandExt for LiteralString {
+    fn capabilities(&self) -> Vec<Capability> { Vec::new() }
+}
+
+impl OperandExt for LiteralInteger {
+    fn capabilities(&self) -> Vec<Capability> { Vec::new() }
+}
+
+impl OperandExt for PairIdRefIdRef {
+    fn capabilities(&self) -> Vec<Capability> { Vec::new() }
+}
+
+impl OperandExt for PairIdRefLiteralInteger {
+    fn capabilities(&self) -> Vec<Capability> { Vec::new() }
+}
+
+impl OperandExt for PairLiteralIntegerIdRef {
+    fn capabilities(&self) -> Vec<Capability> { Vec::new() }
+}
+
+impl<T: OperandExt> OperandExt for Option<T> {
+    fn capabilities(&self) -> Vec<Capability> {
+        match *self {
+            Some(ref operand) => operand.capabilities(),
+            None => Vec::new(),
+        }
+    }
+}
+
+impl<T: OperandExt> OperandExt for Vec<T> {
+    fn capabilities(&self) -> Vec<Capability> {
+        let mut capabilities = Vec::new();
+        for val in self {
+            capabilities.extend(val.capabilities());
+        }
+        capabilities
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -19,6 +68,10 @@ impl InstructionExt for RawInstruction {
     fn opcode(&self) -> Self::OpCodeType {
         self.opcode
     }
+
+    fn capabilities(&self) -> Vec<Capability> {
+        Vec::new()
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -30,9 +83,16 @@ pub enum Instruction {
 impl InstructionExt for Instruction {
     type OpCodeType = OpCode;
     fn opcode(&self) -> Self::OpCodeType {
-        match self {
-            &Instruction::Core(ref instr) => OpCode::Core(instr.opcode()),
-            &Instruction::Unknown(ref instr) => OpCode::Unknown(instr.opcode()),
+        match *self {
+            Instruction::Core(ref instr) => OpCode::Core(instr.opcode()),
+            Instruction::Unknown(ref instr) => OpCode::Unknown(instr.opcode()),
+        }
+    }
+
+    fn capabilities(&self) -> Vec<Capability> {
+        match *self {
+            Instruction::Core(ref instr) => instr.capabilities(),
+            Instruction::Unknown(ref instr) => instr.capabilities(),
         }
     }
 }
