@@ -32,7 +32,3 @@ pub struct Header {
     pub generator: Generator,
     pub bound: u32,
 }
-
-pub struct LogicalModule {
-
-}

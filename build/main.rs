@@ -70,7 +70,7 @@ fn build_core_instructions<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -
     try!(writeln!(dest, ""));
 
     // enum for all instructions in core
-    try!(writeln!(dest, "#[derive(Debug)]"));
+    try!(writeln!(dest, "#[derive(Clone, Debug)]"));
     try!(writeln!(dest, "pub enum Instruction {{")); dest.ident(); {
         for op in grammar["instructions"].members() {
             try!(writeln!(dest, "{name}({name}),", name=op["opname"]));
@@ -113,7 +113,7 @@ fn build_core_instructions<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -
 
     // generate data for each instruction
     for op in grammar["instructions"].members() {
-        try!(writeln!(dest, "#[derive(Debug)]"));
+        try!(writeln!(dest, "#[derive(Clone, Debug)]"));
         if op["operands"].is_null() {
             try!(writeln!(dest, "pub struct {};", op["opname"]));
         }
@@ -127,11 +127,11 @@ fn build_core_instructions<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -
                     };
 
                     if operand["quantifier"].is_null() {
-                        try!(writeln!(dest, "{ty},{comment}", ty=operand["kind"], comment=comment));
+                        try!(writeln!(dest, "pub {ty},{comment}", ty=operand["kind"], comment=comment));
                     } else if operand["quantifier"] == "?" {
-                        try!(writeln!(dest, "Option<{ty}>,{comment}", ty=operand["kind"], comment=comment));             
+                        try!(writeln!(dest, "pub Option<{ty}>,{comment}", ty=operand["kind"], comment=comment));             
                     } else if operand["quantifier"] == "*" {
-                        try!(writeln!(dest, "Vec<{ty}>,{comment}", ty=operand["kind"], comment=comment)); // TODO: emit Vec<_>?
+                        try!(writeln!(dest, "pub Vec<{ty}>,{comment}", ty=operand["kind"], comment=comment)); // TODO: emit Vec<_>?
                     } else {
                         unimplemented!();
                     };
@@ -215,7 +215,7 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
                     // emit C-like kind of the enum excluding the parameters
                     let ref enum_name = op_kind["kind"];
                     try!(writeln!(dest, "enum_from_primitive! {{"));
-                    try!(writeln!(dest, "#[derive(Clone, Copy, Debug)]"));
+                    try!(writeln!(dest, "#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]"));
                     
                     try!(writeln!(dest, "pub enum {}Kind {{", enum_name)); dest.ident(); {
                         for enumerant in op_kind["enumerants"].members() {
@@ -246,7 +246,7 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
                     try!(writeln!(dest, ""));
 
                     // emit actual enum with parameters
-                    try!(writeln!(dest, "#[derive(Debug)]"));
+                    try!(writeln!(dest, "#[derive(Clone, Debug)]"));
                     try!(writeln!(dest, "pub enum {} {{", enum_name)); dest.ident(); {
                          for enumerant in op_kind["enumerants"].members() {
                             // prefix required due to some enums like '1D', '2D', etc.
@@ -320,7 +320,7 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
                                             name=enumerant["enumerant"]
                                         )); dest.ident(); {
                                             let mut cur_param = 0;
-                                            for param in enumerant["parameters"].members() {
+                                            for _ in enumerant["parameters"].members() {
                                                 try!(writeln!(dest, "ref param{num},", num=cur_param));
                                                 cur_param += 1;
                                             }
@@ -330,7 +330,7 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
                                                 prefix=enum_name,
                                                 name=enumerant["enumerant"]));
                                             let mut cur_param = 0;
-                                            for param in enumerant["parameters"].members() {
+                                            for _ in enumerant["parameters"].members() {
                                                 try!(writeln!(dest, "param{num}.write(instr);", num=cur_param));
                                                 cur_param += 1;
                                             }
@@ -346,7 +346,7 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
                     // no parameters -> C-like enum only
                     let ref enum_name = op_kind["kind"];
                     try!(writeln!(dest, "enum_from_primitive! {{"));
-                    try!(writeln!(dest, "#[derive(Clone, Copy, Debug)]"));
+                    try!(writeln!(dest, "#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]"));
                     
                     try!(writeln!(dest, "pub enum {} {{", enum_name)); dest.ident(); {
                         for enumerant in op_kind["enumerants"].members() {

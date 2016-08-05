@@ -87,7 +87,7 @@ impl WriteBinaryExt for LiteralString {
         let mut chars = &mut self.0.chars();
         for _ in 0 .. (self.0.chars().count() / 4) + 1 {
             let mut word: u32 = 0;
-            word |= chars.next().unwrap_or(0 as char) as u32 & 0xFF;
+            word |=  chars.next().unwrap_or(0 as char) as u32 & 0xFF;
             word |= (chars.next().unwrap_or(0 as char) as u32 & 0xFF) << 8;
             word |= (chars.next().unwrap_or(0 as char) as u32 & 0xFF) << 16;
             word |= (chars.next().unwrap_or(0 as char) as u32 & 0xFF) << 24;

@@ -10,9 +10,9 @@ pub type IdRef = Id;
 pub type IdScope = Id;
 pub type IdMemorySemantics = Id;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct LiteralString(pub String);
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct LiteralInteger(pub u32); // TODO: verify!
 
 // TODO: These types are only temporary set, might change in the future
