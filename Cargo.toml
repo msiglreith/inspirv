@@ -12,3 +12,7 @@ num-traits = "0.1.34"
 
 [build-dependencies]
 json = "0.10.0"
+
+[[bin]]
+name = "test"
+path = "bin/main.rs"
