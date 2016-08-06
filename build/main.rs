@@ -471,7 +471,6 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
             },
 
             "BitEnum" => {
-                // TODO: high: correctly read/write enums with parameters
                 // generate bitflags
                 if has_parameters {
                     let ref enum_name = op_kind["kind"];
@@ -506,6 +505,16 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
                             try!(writeln!(dest, "match *self {{")); dest.ident(); {
                                 for param_ty in &param_types {
                                     try!(writeln!(dest, "{name}Value::{ty}(ref val) => val.write(instr),", name=enum_name, ty=param_ty));
+                                }
+                            } dest.unident(); try!(writeln!(dest, "}}"));
+                        } dest.unident(); try!(writeln!(dest, "}}"));
+                    } dest.unident(); try!(writeln!(dest, "}}"));
+
+                    try!(writeln!(dest, "impl OperandExt for {enum_name}Value {{", enum_name=enum_name)); dest.ident(); {
+                        try!(writeln!(dest, "fn capabilities(&self) -> Vec<Capability> {{")); dest.ident(); {
+                            try!(writeln!(dest, "match *self {{")); dest.ident(); {
+                                for param_ty in &param_types {
+                                    try!(writeln!(dest, "{name}Value::{ty}(ref val) => val.capabilities(),", name=enum_name, ty=param_ty));
                                 }
                             } dest.unident(); try!(writeln!(dest, "}}"));
                         } dest.unident(); try!(writeln!(dest, "}}"));
@@ -550,7 +559,7 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
 
                     try!(writeln!(dest, "impl WriteBinaryExt for {enum_name} {{", enum_name=enum_name)); dest.ident(); {
                         try!(writeln!(dest, "fn write(&self, instr: &mut RawInstruction) {{")); dest.ident(); {
-                            try!(writeln!(dest, "self.bits.bits().write(instr);")); // TODO: high
+                            try!(writeln!(dest, "self.bits.bits().write(instr);"));
                             for enumerant in op_kind["enumerants"].members() {
                                 if !enumerant["parameters"].is_null() {
                                     try!(writeln!(dest, "match self.values.get(&{prefix}{name}) {{",
@@ -567,7 +576,27 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
 
                     try!(writeln!(dest, "impl OperandExt for {enum_name} {{", enum_name=enum_name)); dest.ident(); {
                         try!(writeln!(dest, "fn capabilities(&self) -> Vec<Capability> {{")); dest.ident(); {
-                            try!(writeln!(dest, "unimplemented!()"));
+                            try!(writeln!(dest, "let mut _capabilities = Vec::new();"));
+                            for enumerant in op_kind["enumerants"].members() {
+                                try!(writeln!(dest, "if self.bits.contains({prefix}{name}) {{",
+                                    name=enumerant["enumerant"],
+                                    prefix=enum_name
+                                )); dest.ident(); {
+                                    for capabiliy in enumerant["capabilities"].members() {
+                                        try!(writeln!(dest, "_capabilities.push(Capability::Capability{capabiliy});", capabiliy=capabiliy));
+                                    }
+                                    if !enumerant["parameters"].is_null() {
+                                        try!(writeln!(dest, "match self.values.get(&{prefix}{name}) {{",
+                                            name=enumerant["enumerant"],
+                                            prefix=enum_name
+                                        )); dest.ident(); {
+                                            try!(writeln!(dest, "Some(operands) => _capabilities.extend(operands.capabilities()),"));
+                                            try!(writeln!(dest, "None => (),"));
+                                        } dest.unident(); try!(writeln!(dest, "}}"));
+                                    }
+                                } dest.unident(); try!(writeln!(dest, "}}"));
+                            }
+                            try!(writeln!(dest, "_capabilities"));
                         } dest.unident(); try!(writeln!(dest, "}}"));
                     } dest.unident(); try!(writeln!(dest, "}}"));
 
