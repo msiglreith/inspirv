@@ -3,6 +3,9 @@ name = "inspirv"
 version = "0.1.0"
 authors = ["msiglreith <msiglreith@users.noreply.github.com>"]
 build = "build/main.rs"
+license = "MIT/Apache-2.0"
+repository = "https://github.com/msiglreith/inspirv"
+keywords = ["spir-v"]
 
 [dependencies]
 bitflags = "0.7.0"
@@ -12,7 +15,3 @@ num-traits = "0.1.34"
 
 [build-dependencies]
 json = "0.10.0"
-
-[[bin]]
-name = "test"
-path = "bin/main.rs"
