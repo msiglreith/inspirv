@@ -1,6 +1,6 @@
 
 /// A numerical ID to refer to an object, type, function, label, ...
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Id(pub u32);
 
 pub type IdResult = Id;
@@ -17,7 +17,7 @@ pub struct LiteralInteger(pub u32); // TODO: verify!
 
 // TODO: These types are only temporary set, might change in the future
 pub type LiteralExtInstInteger = LiteralInteger;
-pub type LiteralContextDependentNumber = LiteralInteger;
+pub type LiteralContextDependentNumber = Vec<LiteralInteger>;
 pub type LiteralSpecConstantOpInteger = LiteralInteger;
 
 pub type PairIdRefIdRef = (IdRef, IdRef);

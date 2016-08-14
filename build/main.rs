@@ -456,7 +456,7 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
                                         name=enumerant["enumerant"]
                                     )); dest.ident(); {
                                         // enum specific capabilities
-                                        for capability in op_kind["capabilities"].members() {
+                                        for capability in enumerant["capabilities"].members() {
                                             try!(writeln!(dest, "_capabilities.push(Capability::Capability{capability});",
                                                 capability=capability));
                                         }
