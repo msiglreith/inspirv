@@ -56,7 +56,7 @@ fn build_core_instructions<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -
     try!(writeln!(dest, "use types::*;"));
     try!(writeln!(dest, "use read_binary::{{RawInstructionView, ReadBinaryExt}};"));
     try!(writeln!(dest, "use write_binary::WriteBinaryExt;"));
-    try!(writeln!(dest, "use instruction::{{InstructionExt, OperandExt, RawInstruction}};"));
+    try!(writeln!(dest, "use instruction::{{self, InstructionExt, OperandExt, RawInstruction}};"));
     try!(writeln!(dest, "use core::enumeration::*;"));
     try!(writeln!(dest, "use io::ReadError;"));
     try!(writeln!(dest, ""));
@@ -147,6 +147,12 @@ fn build_core_instructions<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -
             } dest.unident(); try!(writeln!(dest, ");"));
         }
         try!(writeln!(dest, ""));
+
+        try!(writeln!(dest, "impl Into<instruction::Instruction> for {} {{", op["opname"])); dest.ident(); {
+            try!(writeln!(dest, "fn into(self) -> instruction::Instruction {{")); dest.ident(); {
+                try!(writeln!(dest, "instruction::Instruction::Core(Instruction::{}(self))", op["opname"]));
+            } dest.unident(); try!(writeln!(dest, "}}"));
+        } dest.unident(); try!(writeln!(dest, "}}"));
 
         try!(writeln!(dest, "impl InstructionExt for {} {{", op["opname"])); dest.ident(); {
             try!(writeln!(dest, "type OpCodeType = OpCode;"));
@@ -269,7 +275,7 @@ fn build_core_enum<P: AsRef<Path>>(path: P, grammar: &json::JsonValue) -> Result
                     try!(writeln!(dest, ""));
 
                     // emit actual enum with parameters
-                    try!(writeln!(dest, "#[derive(Clone, Debug)]"));
+                    try!(writeln!(dest, "#[derive(Clone, Debug, PartialEq, Eq, Hash)]"));
                     try!(writeln!(dest, "pub enum {} {{", enum_name)); dest.ident(); {
                          for enumerant in op_kind["enumerants"].members() {
                             // prefix required due to some enums like '1D', '2D', etc.
