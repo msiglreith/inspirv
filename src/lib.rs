@@ -11,6 +11,7 @@ extern crate num_traits;
 
 pub mod module;
 pub mod core;
+pub mod glsl;
 pub mod types;
 pub mod instruction;
 pub mod read_binary;
